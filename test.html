@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz z Zarządzania</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f9; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .quiz-container { background-color: white; width: 90%; max-width: 600px; padding: 20px; border-radius: 10px; box-shadow: 0 0 20px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #333; font-size: 24px; }
+        .question { font-size: 18px; margin-bottom: 20px; font-weight: 600; color: #2c3e50; }
+        .options { display: flex; flex-direction: column; gap: 10px; }
+        .btn { padding: 12px; border: 2px solid #ddd; background-color: white; border-radius: 5px; cursor: pointer; text-align: left; font-size: 16px; transition: all 0.3s; }
+        .btn:hover:not([disabled]) { background-color: #eef; border-color: #bbc; }
+        .btn.correct { background-color: #d4edda; border-color: #c3e6cb; color: #155724; }
+        .btn.wrong { background-color: #f8d7da; border-color: #f5c6cb; color: #721c24; }
+        .feedback { margin-top: 15px; padding: 10px; border-radius: 5px; display: none; font-size: 14px; }
+        .feedback.show { display: block; }
+        .next-btn { display: none; width: 100%; padding: 15px; background-color: #007bff; color: white; border: none; border-radius: 5px; font-size: 18px; margin-top: 20px; cursor: pointer; }
+        .next-btn:hover { background-color: #0056b3; }
+        .score-board { text-align: center; margin-bottom: 20px; font-size: 14px; color: #666; }
+        .result-screen { text-align: center; display: none; }
+    </style>
+</head>
+<body>
+
+<div class="quiz-container" id="quiz-box">
+    <h1>Kolokwium: Zarządzanie</h1>
+    <div class="score-board">Pytanie: <span id="q-number">1</span>/40</div>
+    <div id="question-text" class="question">Treść pytania...</div>
+    <div id="options-container" class="options"></div>
+    <div id="feedback" class="feedback"></div>
+    <button id="next-btn" class="next-btn" onclick="nextQuestion()">Następne pytanie</button>
+</div>
+
+<div class="quiz-container result-screen" id="result-box">
+    <h1>Koniec testu!</h1>
+    <p>Twój wynik to:</p>
+    <h2 id="final-score" style="font-size: 40px; color: #007bff;"></h2>
+    <p id="comment"></p>
+    <button class="next-btn" style="display:block" onclick="location.reload()">Rozwiąż jeszcze raz</button>
+</div>
+
+<script>
+    const questions = [
+        { q: "Zgodnie z cyklem organizacyjnym Le Chatelier’a, co następuje bezpośrednio po etapie „Ustalenie celu”?", a: ["Zaplanowanie całego działania.", "Przygotowanie i zorganizowanie środków.", "Zbadanie środków i warunków potrzebnych do osiągnięcia celu.", "Podział pracy na czynności i departamentalizacja."], correct: 2, reason: "Po ustaleniu celu (1) następuje zbadanie środków i warunków (2). Planowanie (3) jest dopiero potem." },
+        { q: "Jak w notatkach zdefiniowana jest różnica między działaniem „sprawnym” a „skutecznym”?", a: ["Sprawność to realizacja celu, a skuteczność to unikanie marnotrawstwa.", "Sprawność to wykorzystywanie zasobów bez marnotrawstwa, a skuteczność to zrealizowanie zamierzonego celu.", "Sprawność dotyczy tylko zasobów finansowych, a skuteczność zasobów ludzkich.", "Pojęcia te są w notatkach traktowane jako synonimy."], correct: 1, reason: "Sprawność = mądrze/bez marnotrawstwa; Skuteczność = zrealizowanie celu." },
+        { q: "Który z poniższych zestawów cech poprawnie opisuje dobrze sformułowany cel wg notatek?", a: ["Ambitny, mierzalny, określony w czasie, realny.", "Jedyny, ścisły, ograniczony, użyteczny.", "Kompleksowy, ścisły, nielimitowany, użyteczny.", "Jedyny, ogólny, ograniczony, dochodowy."], correct: 1, reason: "Cechy celu w notatkach to: Jedyny, Ścisły, Ograniczony, Użyteczny." },
+        { q: "W analizie SWOT, sytuacja „Mini-Maxi” (WO) odpowiada strategii:", a: ["Agresywnej.", "Konserwatywnej.", "Konkurencyjnej.", "Defensywnej."], correct: 2, reason: "Strategia Konkurencyjna (WO) to mini-maxi (słabe strony/szanse)." },
+        { q: "Czym charakteryzują się „Znaki zapytania” w macierzy BCG?", a: ["Wysokim udziałem w rynku i wysoką stopą wzrostu rynku.", "Niskim udziałem w rynku i niską stopą wzrostu rynku.", "Wysokim udziałem w rynku i niską stopą wzrostu rynku.", "Niskim udziałem w rynku i wysoką stopą wzrostu rynku."], correct: 3, reason: "Znaki zapytania: wysokie perspektywy wzrostu rynku, ale niski udział w rynku." },
+        { q: "Siła przetargowa nabywców wg Portera jest WYSOKA, gdy:", a: ["Koszty zmiany dostawcy są duże.", "Produkty oferowane przez konkurentów są silnie zróżnicowane.", "Produkty oferowane przez konkurentów nie różnią się między sobą.", "Nabywcy są rozdrobnieni i niezdolni do koordynacji."], correct: 2, reason: "Siła nabywców jest wysoka, gdy produkty konkurencji nie różnią się (mogą łatwo wybrać inny)." },
+        { q: "Który element NIE należy do mikrootoczenia przedsiębiorstwa (wg podziału w notatkach)?", a: ["Dostawcy.", "Segment ekonomiczny.", "Interesariusze wewnętrzni.", "Producenci substytutów."], correct: 1, reason: "Segment ekonomiczny to Makrootoczenie." },
+        { q: "Czym jest „rozpiętość kierowania”?", a: ["Liczbą podwładnych podległych kierownikowi bezpośrednio i pośrednio.", "Liczbą szczebli zarządzania w organizacji.", "Liczbą podwładnych bezpośrednio podległych kierownikowi.", "Zasięgiem terytorialnym działania menedżera."], correct: 2, reason: "Rozpiętość = bezpośrednio podlegli. Zasięg = bezpośrednio i pośrednio." },
+        { q: "Struktura płaska charakteryzuje się:", a: ["Małą rozpiętością kierowania i dużą liczbą szczebli zarządzania.", "Dużą rozpiętością kierowania i częstym kontaktem kierownika z podwładnymi.", "Dużą rozpiętością kierowania i rzadszym kontaktem kierownika z podwładnymi.", "Małą samodzielnością pracowników i dużą liczbą menedżerów."], correct: 2, reason: "Struktura płaska = duża rozpiętość, rzadszy kontakt, duża samodzielność." },
+        { q: "Główna cecha struktury macierzowej to:", a: ["Zasada jedności kierownictwa.", "Brak więzi funkcjonalnych.", "Zasada podwójnego podporządkowania.", "Całkowite wyeliminowanie kierowników projektów."], correct: 2, reason: "Struktura macierzowa = zasada podwójnego podporządkowania (system wielokrotnego podporządkowania)." },
+        { q: "Zgodnie z definicją misji organizacji, służy ona m.in. do:", a: ["Określenia harmonogramu na miesiąc.", "Zasygnalizowania odrębności i alokacji zasobów.", "Wyliczenia zysku netto.", "Analizy działań konkurencji."], correct: 1, reason: "Misja dostarcza podstawy dla alokacji zasobów i sygnalizuje odrębność." },
+        { q: "W analizie SWOT „Szanse” (Opportunities) to:", a: ["Czynniki wewnętrzne wyróżniające organizację.", "Czynniki zewnętrzne pod kontrolą firmy.", "Czynniki zewnętrzne, które mogą pozytywnie wpływać na rozwój.", "Atuty organizacji do kontroli."], correct: 2, reason: "Szanse to czynniki zewnętrzne (niezależne od firmy)." },
+        { q: "Który z poniższych elementów jest uważany za „Gwiazdę” w macierzy BCG?", a: ["Jednostka generująca gotówkę na wolnym rynku.", "Jednostka o wysokim udziale w rynku, pochłaniająca gotówkę (szybki wzrost).", "Jednostka na granicy rentowności bez perspektyw.", "Jednostka do pasywnego inwestowania."], correct: 1, reason: "Gwiazdy mają duży udział i duży wzrost, ale pochłaniają dużo gotówki." },
+        { q: "Bariery wejścia na rynek są WYSOKIE (korzystne dla obecnych graczy), gdy:", a: ["Koszty wejścia są niskie.", "Brak know-how.", "Występują korzyści skali u obecnych graczy.", "Produkty są standardowe."], correct: 2, reason: "Korzyści skali to bariera dla nowych, więc ryzyko wejść jest niskie." },
+        { q: "Więzi funkcjonalne w strukturze organizacyjnej oznaczają, że:", a: ["Przełożony decyduje o wszystkim.", "Podwładny pomaga, ale przełożony nie musi słuchać.", "Przełożony pomaga i doradza, ale nie dysponuje (nie wydaje poleceń).", "Relacja tylko między sztabami a liniowymi."], correct: 2, reason: "Więź funkcjonalna: podwładny pomaga/doradza, ale nie dysponuje (nie rządzi)." },
+        { q: "W którym etapie cyklu organizacyjnego następuje „przydzielenie zasobów do konkretnych zadań”?", a: ["Etap 3: Zaplanowanie.", "Etap 4: Przygotowanie i zorganizowanie środków.", "Etap 5: Wykonanie.", "Etap 2: Zbadanie środków."], correct: 1, reason: "Etap 4 polega na pozyskiwaniu i przydzielaniu zasobów." },
+        { q: "Strategia Konserwatywna (Maxi-Mini) w SWOT jest zalecana, gdy:", a: ["Organizacja ma duży potencjał, ale niekorzystne otoczenie.", "Organizacja ma słabe strony, ale są szanse.", "Organizacja ma silne strony i szanse.", "Organizacja nie ma mocnych stron i wrogie otoczenie."], correct: 0, reason: "Konserwatywna (ST) – mocne strony, ale zagrożenia." },
+        { q: "Substytuty wg Portera to:", a: ["Produkty tej samej marki, inna cena.", "Produkty z tej samej branży.", "Produkty z innych branż, zaspokajające tę samą potrzebę.", "Kopie wyrobu."], correct: 2, reason: "Substytuty to produkty z INNYCH branż." },
+        { q: "Co jest wadą analizy 5 sił Portera wymienioną w notatkach?", a: ["Za dużo czynników.", "Zbyt dynamiczna.", "Nie jest uniwersalna i skupia się tylko na 5 czynnikach.", "Ignoruje dostawców."], correct: 2, reason: "Wady: skupia się tylko na 5 czynnikach, nie jest uniwersalna." },
+        { q: "„Dojne krowy” charakteryzują się:", a: ["Dużymi potrzebami finansowymi i małą rentownością.", "Małymi potrzebami finansowymi i wysoką rentownością.", "Dużymi potrzebami finansowymi i wysoką rentownością.", "Małymi potrzebami finansowymi i niską rentownością."], correct: 1, reason: "Dojne krowy: duży udział, mały wzrost -> generują gotówkę, małe potrzeby." },
+        { q: "Które stwierdzenie dotyczące makrootoczenia jest prawdziwe?", a: ["Firma je kontroluje.", "Należą do niego dostawcy.", "Przedsiębiorstwo nie ma wpływu, ale ono kształtuje możliwości.", "Jest stabilne."], correct: 2, reason: "Makrootoczenie kształtuje możliwości, firma nie ma na nie wpływu." },
+        { q: "Zasięg kierowania różni się od rozpiętości tym, że:", a: ["Dotyczy pracowników fizycznych.", "Obejmuje podwładnych podległych bezpośrednio i pośrednio.", "Jest zawsze węższy.", "Dotyczy struktury płaskiej."], correct: 1, reason: "Zasięg obejmuje też podwładnych podległych pośrednio." },
+        { q: "Jaka jest rola „Interesariuszy zewnętrznych” wymienionych w mikrootoczeniu?", a: ["Tylko akcjonariusze.", "Np. banki, środki masowego przekazu.", "Segmenty demograficzne.", "Pracownicy."], correct: 1, reason: "Interesariusze zewnętrzni: banki, media, org. społeczne." },
+        { q: "Obserwacja w drugim etapie cyklu organizacyjnego dostarcza:", a: ["Ilościowych związków.", "Harmonogramu.", "Ogólnych informacji o zjawisku.", "Celu głównego."], correct: 2, reason: "Obserwacja dostarcza ogólnych informacji (doświadczenia dają ilościowe)." },
+        { q: "Co oznacza skrót „SO” w wariantach strategicznych SWOT?", a: ["Słabe strony / Okazje.", "Silne strony / Szanse.", "Silne strony / Organizacja.", "Słabe strony / Otoczenie."], correct: 1, reason: "SO = Strengths / Opportunities." },
+        { q: "W strukturze smukłej:", a: ["Komórki są liczne.", "Rozpiętość kierowania jest duża.", "Niewielka ilość menedżerów.", "Rozpiętość kierowania jest mała, a liczba szczebli duża."], correct: 3, reason: "Struktura smukła: mała rozpiętość, dużo szczebli." },
+        { q: "Czym jest departamentalizacja?", a: ["Ustaleniem misji.", "Łączeniem członków w komórki organizacyjne.", "Zwalnianiem pracowników.", "Zmianą struktury."], correct: 1, reason: "Departamentalizacja to łączenie członków w komórki." },
+        { q: "Rywalizacja w sektorze (wg Portera) jest silniejsza, gdy:", a: ["Rynek szybko rośnie.", "Wzrost rynku jest niski (walka o klienta).", "Bariery wyjścia są niskie.", "Koszty stałe są niskie."], correct: 1, reason: "Niski wzrost rynku nasila rywalizację." },
+        { q: "„Psy” w macierzy BCG są kandydatami do:", a: ["Inwestowania.", "Przekształcenia w Gwiazdy.", "Zbycia (likwidacji).", "Finansowania B+R."], correct: 2, reason: "Psy są kandydatami do zbycia (pułapki gotówkowe)." },
+        { q: "Więzi sztabowe to relacje o charakterze:", a: ["Decyzyjnym.", "Doradczym i pomocniczym.", "Kontrolnym.", "Technologicznym."], correct: 1, reason: "Więzi sztabowe: doradcze i pomocnicze." },
+        { q: "Który z poniższych czynników zaliczamy do makrootoczenia (segmentu demograficznego)?", a: ["Upadłość konkurenta.", "Zmiana dostawcy.", "Starzenie się społeczeństwa.", "Zmiana misji firmy."], correct: 2, reason: "Demografia to makrootoczenie." },
+        { q: "Celem wizji strategicznej jest:", a: ["Opisanie stanu obecnego.", "Stworzenie koncepcji przyszłości i aspiracji.", "Analiza finansowa.", "Wyeliminowanie konkurencji."], correct: 1, reason: "Wizja: koncepcja przyszłości i aspiracje." },
+        { q: "Siła przetargowa dostawców jest WYSOKA, gdy:", a: ["Dostawców jest wielu.", "Dostawcy mogą zagrozić pominięciem odbiorców.", "Istnieje wiele substytutów.", "Firma jest kluczowym klientem."], correct: 1, reason: "Siła dostawców wysoka, gdy mogą pominąć odbiorcę (sprzedać sami)." },
+        { q: "Cechą celu 'ograniczonego' jest to, że:", a: ["Brak ambicji.", "Zawsze ograniczone są środki na jego realizację.", "Dotyczy jednego działu.", "Nie może być modyfikowany."], correct: 1, reason: "Cel ograniczony, bo ograniczone są środki." },
+        { q: "W którym segmencie BCG firmy mają „uwiązane pieniądze” bez zysku?", a: ["Gwiazdy.", "Dojne Krowy.", "Psy.", "Znaki zapytania."], correct: 2, reason: "Psy to pułapki gotówkowe." },
+        { q: "„Integracja wsteczna” (przez firmę) oznacza:", a: ["Dostawca przejmuje klienta.", "Dostawca produkuje wyrób.", "Firma tworzy własną produkcję surowców.", "Firma staje się dystrybutorem."], correct: 2, reason: "Firma uniezależnia się od dostawcy, tworząc własne źródło." },
+        { q: "Elementy kontrolowane przez przedsiębiorstwo to m.in.:", a: ["Rząd i gospodarka.", "Cele, marketing, styl organizacji.", "Konsumenci.", "Technologia globalna."], correct: 1, reason: "Elementy kontrolowane: cele, marketing, styl organizacji." },
+        { q: "Analiza SWOT to akronim od:", a: ["Strengths, Weaknesses, Options, Tasks.", "Strong, Weak, Open, Threats.", "Strengths, Weaknesses, Opportunities, Threats.", "Strategies, Work, Organization, Time."], correct: 2, reason: "S - Strengths, W - Weaknesses, O - Opportunities, T - Threats." },
+        { q: "W strukturze macierzowej wiersze najczęściej reprezentują:", a: ["Stałe funkcje.", "Nietypowe, zmieniające się zadania.", "Podział geograficzny.", "Finanse."], correct: 1, reason: "Kolumny = funkcje, wiersze = zadania/projekty." },
+        { q: "Ostatnim etapem procesu organizowania jest:", a: ["Przydzielenie zasobów.", "Dobór kadr.", "Kontrola skuteczności i poprawki.", "Koordynacja."], correct: 2, reason: "Ostatni etap organizowania: Kontrola skuteczności." }
+    ];
+
+    let currentQuestion = 0;
+    let score = 0;
+    const quizBox = document.getElementById("quiz-box");
+    const resultBox = document.getElementById("result-box");
+    const qNumber = document.getElementById("q-number");
+    const qText = document.getElementById("question-text");
+    const optionsContainer = document.getElementById("options-container");
+    const feedback = document.getElementById("feedback");
+    const nextBtn = document.getElementById("next-btn");
+
+    function loadQuestion() {
+        const q = questions[currentQuestion];
+        qNumber.innerText = currentQuestion + 1;
+        qText.innerText = q.q;
+        optionsContainer.innerHTML = "";
+        feedback.className = "feedback";
+        feedback.innerHTML = "";
+        nextBtn.style.display = "none";
+
+        q.a.forEach((option, index) => {
+            const btn = document.createElement("button");
+            btn.className = "btn";
+            btn.innerText = option;
+            btn.onclick = () => checkAnswer(index, btn);
+            optionsContainer.appendChild(btn);
+        });
+    }
+
+    function checkAnswer(selectedIndex, btn) {
+        const q = questions[currentQuestion];
+        const buttons = optionsContainer.getElementsByClassName("btn");
+        
+        for (let b of buttons) { b.disabled = true; }
+
+        if (selectedIndex === q.correct) {
+            btn.classList.add("correct");
+            feedback.innerHTML = "<b>Dobrze!</b> " + q.reason;
+            feedback.style.backgroundColor = "#d4edda";
+            feedback.style.color = "#155724";
+            score++;
+        } else {
+            btn.classList.add("wrong");
+            buttons[q.correct].classList.add("correct");
+            feedback.innerHTML = "<b>Błąd.</b> " + q.reason;
+            feedback.style.backgroundColor = "#f8d7da";
+            feedback.style.color = "#721c24";
+        }
+        feedback.classList.add("show");
+        nextBtn.style.display = "block";
+    }
+
+    function nextQuestion() {
+        currentQuestion++;
+        if (currentQuestion < questions.length) {
+            loadQuestion();
+        } else {
+            showResult();
+        }
+    }
+
+    function showResult() {
+        quizBox.style.display = "none";
+        resultBox.style.display = "block";
+        document.getElementById("final-score").innerText = score + " / " + questions.length;
+        
+        let msg = "";
+        const percentage = (score / questions.length) * 100;
+        if (percentage === 100) msg = "Genialnie! Jesteś mistrzem zarządzania.";
+        else if (percentage > 80) msg = "Bardzo dobry wynik!";
+        else if (percentage > 50) msg = "Nieźle, ale warto powtórzyć notatki.";
+        else msg = "Musisz jeszcze sporo poczytać.";
+        
+        document.getElementById("comment").innerText = msg;
+    }
+
+    loadQuestion();
+</script>
+
+</body>
+</html>
